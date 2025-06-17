@@ -1,0 +1,575 @@
+* GEMMA performance stats
+
+** GEMMA 0.98.5-pre1
+
+Measurements taken on a recent AMD Ryzen 7 3700X 8-Core Processor @2.195GHz.
+
+#+begin_src sh
+time ./bin/gemma -g ./example/mouse_hs1940.geno.txt.gz -p ./example/mouse_hs1940.pheno.txt -a ./example/mouse_hs1940.anno.txt -gk -no-check
+GEMMA 0.98.5-pre1 (2021-08-11) by Xiang Zhou, Pjotr Prins and team (C) 2012-2021
+Reading Files ...
+## number of total individuals = 1940
+## number of analyzed individuals = 1410
+## number of covariates = 1
+## number of phenotypes = 1
+## number of total SNPs/var        =    12226
+## number of analyzed SNPs         =    10768
+Calculating Relatedness Matrix ...
+================================================== 100%
+
+real    0m5.288s
+user    0m11.829s
+sys     0m1.992s
+
+time ./bin/gemma -g ./example/mouse_hs1940.geno.txt.gz -p ./example/mouse_hs1940.pheno.txt -n 1 -a ./example/mouse_hs1940.anno.txt -k ./output/result.cXX.txt -lmm -no-check
+GEMMA 0.98.5-pre1 (2021-08-11) by Xiang Zhou, Pjotr Prins and team (C) 2012-2021
+Reading Files ...
+## number of total individuals = 1940
+## number of analyzed individuals = 1410
+## number of covariates = 1
+## number of phenotypes = 1
+## number of total SNPs/var        =    12226
+## number of analyzed SNPs         =    10768
+Start Eigen-Decomposition...
+pve estimate =0.608801
+se(pve) =0.032774
+================================================== 100%
+
+real    0m8.383s
+user    0m12.863s
+sys     0m4.943s
+
+time ./bin/gemma -g ./example/mouse_hs1940.geno.txt.gz -p ./example/mouse_hs1940.pheno.txt -n 1 2 -a ./example/mouse_hs1940.anno.txt -k ./output/result.cXX.txt -lmm -no-check
+GEMMA 0.98.5-pre1 (2021-08-11) by Xiang Zhou, Pjotr Prins and team (C) 2012-2021
+Reading Files ...
+## number of total individuals = 1940
+## number of analyzed individuals = 757
+## number of covariates = 1
+## number of phenotypes = 2
+## number of total SNPs/var        =    12226
+## number of analyzed SNPs         =    10775
+
+real    0m47.586s
+user    0m49.588s
+sys     0m3.521s
+#+end_src
+
+Built with:
+
+        libopenblas.so.0 => /gnu/store/bs9pl1f805ins80xaf4s3n35a0x2lyq3-openblas-0.3.9/lib/libopenblas.so.0
+        libstdc++.so.6 => /gnu/store/01b4w3m6mp55y531kyi1g8shh722kwqm-gcc-7.5.0-lib/lib/libstdc++.so.6 (0x00007f2d61ba9000)
+        libm.so.6 => /gnu/store/fa6wj5bxkj5ll1d7292a70knmyl7a0cr-glibc-2.31/lib/libm.so.6 (0x00007f2d61a68000)
+        libc.so.6 => /gnu/store/fa6wj5bxkj5ll1d7292a70knmyl7a0cr-glibc-2.31/lib/libc.so.6 (0x00007f2d6186f000)
+        libgfortran.so.4 => /gnu/store/741057r2x06zwg6zcmqmdyv51spm6n9i-gfortran-7.5.0-lib/lib/libgfortran.so.4 (0x00007f2d61699000)
+
+
+** GEMMA 0.98.4
+
+Below measurements are taken on 4x Intel(R) Core(TM) i7-6770HQ CPU @
+2.60GHz with hyperthreading and 16 GB RAM with warmed up memory
+buffers.
+
+Between 0.96 and 0.97 a speed regression was [[https://github.com/genetics-statistics/GEMMA/issues/136][reported]] which resulted
+in tracking of performance. It is interesting because 0.96 is a single
+core Eigenlib version and 0.97 went multi-core with
+openblas. Unfortunately I linked in lapack and an older BLAS which
+slowed things down. In 0.98 openblas is mostly used and is faster.
+
+Note also that the recent static versions are slower than the
+dynamically linked ones. Not sure why that is.
+
+The test commands are
+
+#+BEGIN_SRC
+# kinship
+time ./bin/gemma -g ./example/mouse_hs1940.geno.txt.gz -p ./example/mouse_hs1940.pheno.txt -a ./example/mouse_hs1940.anno.txt -gk -no-check
+# univariate LMM
+time ./bin/gemma -g ./example/mouse_hs1940.geno.txt.gz -p ./example/mouse_hs1940.pheno.txt -n 1 -a ./example/mouse_hs1940.anno.txt -k ./output/result.cXX.txt -lmm -no-check
+# multivariate LMM
+time ./bin/gemma -g ./example/mouse_hs1940.geno.txt.gz -p ./example/mouse_hs1940.pheno.txt -n 1 2 -a ./example/mouse_hs1940.anno.txt -k ./output/result.cXX.txt -lmm -no-check
+#+END_SRC
+
+Currently on my laptop there is no difference in running these tests
+using gcc or clang.
+
+#+BEGIN_SRC
+Clang:
+
+real    0m25.758s
+user    0m46.380s
+sys     0m0.852s
+
+real    0m22.173s
+user    0m29.420s
+sys     0m1.540s
+
+GNU C
+
+real    0m24.540s
+user    0m43.948s
+sys     0m1.276s
+
+real    0m22.504s
+user    0m29.768s
+sys     0m1.544s
+#+END_SRC
+
+Running the GNU profiler I got K to be faster by removing the regexs
+
+#+BEGIN_SRC
+real    0m16.811s
+user    0m37.788s
+sys     0m2.168s
+#+END_SRC
+
+Replacing safeGetLine also made some difference
+
+#+BEGIN_SRC
+real    0m15.659s
+user    0m34.896s
+sys     0m1.500s
+#+END_SRC
+
+there is still some scope for improvement by changing do_strtok_safe
+methods as well as less string copying during tokenization. I may get
+to that at some point.
+
+Running the GNU profiler on the MVLMM one rendered
+
+#+BEGIN_SRC
+  %   cumulative   self              self     total
+ time   seconds   seconds    calls   s/call   s/call  name
+ 22.73      0.90     0.90    41121     0.00     0.00  CalcQi(gsl_vector const*, gsl_vector const*, gsl_matrix const*, gsl_matrix*)
+ 13.64      1.44     0.54    30313     0.00     0.00  CalcXHiY(gsl_vector const*, gsl_vector const*, gsl_matrix const*, gsl_matrix const*, gsl_v
+ector*)
+ 11.87      1.91     0.47    19536     0.00     0.00  CalcSigma(char, gsl_vector const*, gsl_vector const*, gsl_matrix const*, gsl_matrix const*
+, gsl_matrix const*, gsl_matrix const*, gsl_matrix const*, gsl_matrix*, gsl_matrix*)
+ 10.86      2.34     0.43    38621     0.00     0.00  safeGetline(std::istream&, std::__cxx11::basic_string<char, std::char_traits<char>, std::a
+llocator<char> >&)
+  8.33      2.67     0.33    10805     0.00     0.00  MphCalcP(gsl_vector const*, gsl_vector const*, gsl_matrix const*, gsl_matrix const*, gsl_m
+atrix const*, gsl_matrix const*, gsl_matrix*, gsl_vector*, gsl_matrix*)
+  6.06      2.91     0.24        1     0.24     0.43  ReadFile_geno
+  5.30      3.12     0.21    19536     0.00     0.00  UpdateV(gsl_vector const*, gsl_matrix const*, gsl_matrix const*, gsl_matrix const*, gsl_ma
+trix const*, gsl_matrix*, gsl_matrix*)
+  5.30      3.33     0.21        1     0.21     3.27  MVLMM::AnalyzeBimbam(gsl_matrix const*, gsl_vector const*, gsl_matrix const*, gsl_matrix c
+onst*)
+#+END_SRC
+
+* GEMMA 0.98.3 (release)
+
+#+begin_src sh
+time ./bin/gemma -g ./example/mouse_hs1940.geno.txt.gz -p ./example/mouse_hs1940.pheno.txt -a ./example/mouse_hs1940.anno.txt -gk -no-check
+
+GEMMA 0.98.3 (2020-11-28) by Xiang Zhou and team (C) 2012-2020
+Reading Files ...
+## number of total individuals = 1940
+## number of analyzed individuals = 1410
+## number of covariates = 1
+## number of phenotypes = 1
+## number of total SNPs/var        =    12226
+## number of analyzed SNPs         =    10768
+Calculating Relatedness Matrix ...
+================================================== 100%
+
+real    0m7.068s
+user    0m14.904s
+sys     0m1.454s
+
+time ./bin/gemma -g ./example/mouse_hs1940.geno.txt.gz -p ./example/mouse_hs1940.pheno.txt -n 1 -a ./example/mouse_hs1940.anno.txt -k ./output/result.cXX.txt -lmm -no-check
+
+GEMMA 0.98.3 (2020-11-28) by Xiang Zhou and team (C) 2012-2020
+Reading Files ...
+## number of total individuals = 1940
+## number of analyzed individuals = 1410
+## number of covariates = 1
+## number of phenotypes = 1
+## number of total SNPs/var        =    12226
+## number of analyzed SNPs         =    10768
+Start Eigen-Decomposition...
+pve estimate =0.608801
+se(pve) =0.032774
+================================================== 100%
+
+real    0m12.581s
+user    0m17.318s
+sys     0m2.079s
+#+end_src
+
+
+
+* GEMMA 0.98.2 (release)
+
+Looks like openblas is getting faster. Two metrics on the same machine:
+
+#+BEGIN_SRC sh
+lario:~/iwrk/opensource/code/genetics/gemma$ time ~/opt/gemma-gn2/bin/gemma -g ./example/mouse_hs1940.geno.txt.gz -p ./example/mouse_hs1940.pheno.txt -a ./example/mouse_hs1940.anno.txt -gk -no-check
+GEMMA 0.98.2 (2020-05-28) by Xiang Zhou and team (C) 2012-2020
+Reading Files ...
+## number of total individuals = 1940
+## number of analyzed individuals = 1410
+## number of covariates = 1
+## number of phenotypes = 1
+## number of total SNPs/var        =    12226
+## number of analyzed SNPs         =    10768
+Calculating Relatedness Matrix ...
+================================================== 100%
+
+real    0m7.635s
+user    0m14.821s
+sys     0m1.077s
+#+END_SRC
+
+The static version
+
+#+BEGIN_SRC sh
+lario:~/iwrk/opensource/code/genetics/gemma$ time ./bin/gemma-0.98-linux-static -g ./example/mouse_hs1940.geno.txt.gz -p ./example/mouse_hs1940.pheno.txt -a ./example/mouse_hs1940.anno.txt -gk -no-check
+GEMMA 0.98 (2018-09-28) by Xiang Zhou and team (C) 2012-2018
+Reading Files ...
+## number of total individuals = 1940
+## number of analyzed individuals = 1410
+## number of covariates = 1
+## number of phenotypes = 1
+## number of total SNPs/var        =    12226
+## number of analyzed SNPs         =    10768
+Calculating Relatedness Matrix ...
+================================================== 100%
+
+real    0m10.663s
+user    0m20.994s
+sys     0m4.268s
+#+END_SRC
+
+
+On a 26 core Intel(R) Xeon(R) CPU E5-2683 v3 @ 2.00GHz
+
+The newer OpenBLAS is a tad faster on multi-core at the expense of
+user land.
+
+#+begin_src sh
+time ./bin/gemma -g ./example/mouse_hs1940.geno.txt.gz -p ./example/mouse_hs1940.pheno.txt -a ./example/mouse_hs1940.anno.txt -gk -no-check
+GEMMA 0.98.2 (2020-05-28) by Xiang Zhou and team (C) 2012-2020
+Reading Files ...
+## number of total individuals = 1940
+## number of analyzed individuals = 1410
+## number of covariates = 1
+## number of phenotypes = 1
+## number of total SNPs/var        =    12226
+## number of analyzed SNPs         =    10768
+Calculating Relatedness Matrix ...
+================================================== 100%
+
+real    0m7.590s
+user    0m30.392s
+sys     0m12.072s
+
+while
+
+time ./gemma-0.98.1-linux-static -g ./example/mouse_hs1940.geno.txt.gz -p ./example/mouse_hs1940.pheno.txt -a ./example/mouse_hs1940.anno.txt -gk -no-check
+GEMMA 0.98.1 (2018-12-10) by Xiang Zhou and team (C) 2012-2018
+real    0m9.272s
+user    0m13.904s
+sys     0m1.636s
+#+end_src
+
+#+begin_src sh
+penguin2:~/iwrk/opensource/code/genetics/gemma$ time ./bin/gemma -g ./example/mouse_hs1940.geno.txt.gz -p ./example/mouse_hs1940.pheno.txt -n 1 -a ./example/mouse_hs1940.anno.txt -k ./output/result.cXX.txt -lmm -no-check
+GEMMA 0.98.2 (2020-05-28) by Xiang Zhou and team (C) 2012-2020
+Reading Files ...
+## number of total individuals = 1940
+## number of analyzed individuals = 1410
+## number of covariates = 1
+## number of phenotypes = 1
+## number of total SNPs/var        =    12226
+## number of analyzed SNPs         =    10768
+Start Eigen-Decomposition...
+pve estimate =0.608801
+se(pve) =0.032774
+================================================== 100%
+
+real    0m17.813s
+user    0m43.460s
+sys     0m36.208s
+
+penguin2:~/iwrk/opensource/code/genetics/gemma$ time ./gemma-0.98.1-linux-static -g ./example/mouse_hs1940.geno.txt.gz -p ./example/mouse_hs1940.pheno.txt -n 1 -a ./example/mouse_hs1940.anno.txt -k ./output/result.cXX.txt -lmm -no-check
+GEMMA 0.98.1 (2018-12-10) by Xiang Zhou and team (C) 2012-2018
+Reading Files ...
+
+real    0m19.481s
+user    0m23.072s
+sys     0m2.684s
+
+#+end_src
+
+* GEMMA 0.98 (release)
+
+
+#+BEGIN_SRC bash
+        libgsl.so.23 => /gnu/store/79fw0qqlgpk7n8vll6lnlc4ahahn4gbw-profile/lib/libgsl.so.23 (0x00007fcb53b1f000)
+        libz.so.1 => /gnu/store/79fw0qqlgpk7n8vll6lnlc4ahahn4gbw-profile/lib/libz.so.1 (0x00007fcb53903000)
+        libopenblas.so.0 => /gnu/store/79fw0qqlgpk7n8vll6lnlc4ahahn4gbw-profile/lib/libopenblas.so.0 (0x00007fcb51bfb000)
+        libgfortran.so.5 => /gnu/store/79fw0qqlgpk7n8vll6lnlc4ahahn4gbw-profile/lib/libgfortran.so.5 (0x00007fcb5178c000)
+        libquadmath.so.0 => /gnu/store/bmaxmigwnlbdpls20px2ipq1fll36ncd-gcc-8.2.0-lib/lib/libquadmath.so.0 (0x00007fcb5154c000)
+        libstdc++.so.6 => /gnu/store/bmaxmigwnlbdpls20px2ipq1fll36ncd-gcc-8.2.0-lib/lib/libstdc++.so.6 (0x00007fcb511c4000)
+        libm.so.6 => /gnu/store/l4lr0f5cjd0nbsaaf8b5dmcw1a1yypr3-glibc-2.27/lib/libm.so.6 (0x00007fcb50e2e000)
+        libgcc_s.so.1 => /gnu/store/bmaxmigwnlbdpls20px2ipq1fll36ncd-gcc-8.2.0-lib/lib/libgcc_s.so.1 (0x00007fcb50c16000)
+        libpthread.so.0 => /gnu/store/l4lr0f5cjd0nbsaaf8b5dmcw1a1yypr3-glibc-2.27/lib/libpthread.so.0 (0x00007fcb509f8000)
+        libc.so.6 => /gnu/store/l4lr0f5cjd0nbsaaf8b5dmcw1a1yypr3-glibc-2.27/lib/libc.so.6 (0x00007fcb50645000)
+        libgfortran.so.3 => /gnu/store/1yym4xrvnlsvcnbzgxy967cg6dlb19gq-gfortran-5.5.0-lib/lib/libgfortran.so.3 (0x00007fcb50322000)
+        /gnu/store/l4lr0f5cjd0nbsaaf8b5dmcw1a1yypr3-glibc-2.27/lib/ld-linux-x86-64.so.2 (0x0000561ae24a8000)
+#+END_SRC
+
+#+BEGIN_SRC bash
+time ./bin/gemma -g ./example/mouse_hs1940.geno.txt.gz -p ./example/mouse_hs1940.pheno.txt -a ./example/mouse_hs1940.anno.txt -gk -no-check
+GEMMA 0.98 (2018-09-26) by Xiang Zhou and team (C) 2012-2018
+Reading Files ...
+## number of total individuals = 1940
+## number of analyzed individuals = 1410
+## number of covariates = 1
+## number of phenotypes = 1
+## number of total SNPs/var        =    12226
+## number of analyzed SNPs         =    10768
+Calculating Relatedness Matrix ...
+================================================== 100%
+
+real    0m7.299s
+user    0m13.632s
+sys     0m1.468s
+#+END_SRC
+
+#+BEGIN_SRC bash
+time ./bin/gemma -g ./example/mouse_hs1940.geno.txt.gz -p ./example/mouse_hs1940.pheno.txt -n 1 -a ./example/mouse_hs1940.anno.txt -k ./output/result.cXX.txt -lmm -no-check
+GEMMA 0.98 (2018-09-26) by Xiang Zhou and team (C) 2012-2018
+Reading Files ...
+## number of total individuals = 1940
+## number of analyzed individuals = 1410
+## number of covariates = 1
+## number of phenotypes = 1
+## number of total SNPs/var        =    12226
+## number of analyzed SNPs         =    10768
+Start Eigen-Decomposition...
+pve estimate =0.608801
+se(pve) =0.032774
+================================================== 100%
+
+real    0m12.395s
+user    0m15.748s
+sys     0m3.000s
+#+END_SRC
+
+Full multivariate analysis is still slow. Mostly because of CalcQi - see above profiling.
+
+#+BEGIN_SRC bash
+time ./bin/gemma -g ./example/mouse_hs1940.geno.txt.gz -p ./example/mouse_hs1940.pheno.txt -n 1 2 -a ./example/mouse_hs1940.anno.txt -k ./output/result.cXX.txt -lmm -no-check
+GEMMA 0.98 (2018-09-26) by Xiang Zhou and team (C) 2012-2018
+Reading Files ...
+## number of total individuals = 1940
+## number of analyzed individuals = 757
+## number of covariates = 1
+## number of phenotypes = 2
+## number of total SNPs/var        =    12226
+## number of analyzed SNPs         =    10775
+Start Eigen-Decomposition...
+REMLE estimate for Vg in the null model:
+1.3270
+1.3270  1.3270
+se(Vg):
+0.8217
+0.7152  0.7198
+REMLE estimate for Ve in the null model:
+0.3251
+0.3251  0.3251
+se(Ve):
+1.9191
+2.6491  1.9101
+REMLE likelihood = 0.0000
+MLE estimate for Vg in the null model:
+1.3263
+1.3263  1.3263
+se(Vg):
+0.8217
+0.7152  0.7198
+MLE estimate for Ve in the null model:
+0.3246
+0.3246  0.3246
+se(Ve):
+1.9191
+2.6491  1.9101
+MLE likelihood = 0.0000
+================================================== 100%
+
+real    0m12.076s
+user    0m13.324s
+sys     0m2.260s
+
+#+END_SRC
+
+using GSL inline functions improved it a bit. The obvious way to
+further improve things is to rejig these CalcXHiY, CalcQi and
+CalcSigma functions.
+
+* GEMMA 0.98-pre
+
+#+BEGIN_SRC bash
+/gnu/store/icz3hd36aqpjz5slyp4hhr8wsfbgiml1-bash-minimal-4.4.12/bin/bash: warning: setlocale: LC_ALL: cannot change locale (en_GB.UTF-8)
+        linux-vdso.so.1 (0x00007ffe2abe1000)
+        libgsl.so.23 => /home/wrk/opt/gemma-dev-env/lib/libgsl.so.23 (0x00007f685a9c0000)
+        libopenblas.so.0 => /home/wrk/opt/gemma-dev-env/lib/libopenblas.so.0 (0x00007f6858422000)
+        libz.so.1 => /home/wrk/opt/gemma-dev-env/lib/libz.so.1 (0x00007f6858207000)
+        libgfortran.so.3 => /home/wrk/opt/gemma-dev-env/lib/libgfortran.so.3 (0x00007f6857ee6000)
+        libquadmath.so.0 => /home/wrk/opt/gemma-dev-env/lib/libquadmath.so.0 (0x00007f6857ca5000)
+        libstdc++.so.6 => /home/wrk/opt/gemma-dev-env/lib/libstdc++.so.6 (0x00007f685792a000)
+        libm.so.6 => /home/wrk/opt/gemma-dev-env/lib/libm.so.6 (0x00007f68575de000)
+        libgcc_s.so.1 => /home/wrk/opt/gemma-dev-env/lib/libgcc_s.so.1 (0x00007f68573c7000)
+        libpthread.so.0 => /home/wrk/opt/gemma-dev-env/lib/libpthread.so.0 (0x00007f68571a9000)
+        libc.so.6 => /home/wrk/opt/gemma-dev-env/lib/libc.so.6 (0x00007f6856df7000)
+        /gnu/store/n6acaivs0jwiwpidjr551dhdni5kgpcr-glibc-2.26.105-g0890d5379c/lib/ld-linux-x86-64.so.2 => /gnu/store/gf30mz7cfx4fyj4cckgxfxwlsc3c7a8r-glibc-2.26.105-g0890d5379c/lib/ld-linux-x86-64.so.2 (0x000055ae91968000)
+#+END_SRC
+
+#+BEGIN_SRC bash
+lario:~/izip/git/opensource/genenetwork/gemma$ time ./bin/gemma -g ~/tmp/mouse_hs1940/mouse_hs1940.geno.txt.gz -p ~/tmp/mouse_hs1940/mouse_hs1940.pheno.txt -a ~/tmp/mouse_hs1940/mouse_hs1940.anno.txt -gk
+GEMMA 0.98-pre1 (2018/02/10) by Xiang Zhou and team (C) 2012-2018
+Reading Files ...
+## number of total individuals = 1940
+## number of analyzed individuals = 1410
+## number of covariates = 1
+## number of phenotypes = 1
+## number of total SNPs/var        =    12226
+## number of analyzed SNPs         =    10768
+Calculating Relatedness Matrix ...
+================================================== 100%
+
+real    0m15.995s
+user    0m31.884s
+sys     0m4.680s
+#+END_SRC
+
+#+BEGIN_SRC bash
+lario:~/izip/git/opensource/genenetwork/gemma$ time bin/gemma -g ~/tmp/mouse_hs1940/mouse_hs1940.geno.txt.gz -p ~/tmp/mouse_hs1940/mouse_hs1940.pheno.txt -n 1 -a ~/tmp/mouse_hs1940/mouse_hs1940.anno.txt -k ./output/result.cXX.txt -lmm
+GEMMA 0.98-pre1 (2018/02/10) by Xiang Zhou and team (C) 2012-2018
+Reading Files ...
+## number of total individuals = 1940
+## number of analyzed individuals = 1410
+## number of covariates = 1
+## number of phenotypes = 1
+## number of total SNPs/var        =    12226
+## number of analyzed SNPs         =    10768
+Start Eigen-Decomposition...
+pve estimate =0.608801
+se(pve) =0.032774
+================================================== 100%
+
+real    0m13.440s
+user    0m20.528s
+sys     0m4.324s
+#+END_SRC
+
+* GEMMA 0.97
+
+#+BEGIN_SRC bash
+lario:~/tmp/gemma-release-0.97$ ldd gemma-gn2-0.97-c760aa0-xqhsidq7h5/bin/gemma
+        linux-vdso.so.1 (0x00007ffc237a8000)
+        libgsl.so.23 => /home/wrk/tmp/gemma-release-0.97/gsl-2.4-as8vm64028/lib/libgsl.so.23 (0x00007f8b415f5000)
+        libopenblas.so.0 => /home/wrk/tmp/gemma-release-0.97/openblas-0.2.19-f7j1vq0ncc/lib/libopenblas.so.0 (0x00007f8b3fbc3000)
+        libz.so.1 => /home/wrk/tmp/gemma-release-0.97/zlib-1.2.11-sfx1wh27i6/lib/libz.so.1 (0x00007f8b3f9a8000)
+        libgfortran.so.3 => /home/wrk/tmp/gemma-release-0.97/gfortran-5.4.0-lib-15plffwjdv/lib/libgfortran.so.3 (0x00007f8b3f687000)
+        libquadmath.so.0 => /home/wrk/tmp/gemma-release-0.97/gcc-5.4.0-lib-3x53yv4v14/lib/libquadmath.so.0 (0x00007f8b3f448000)
+        liblapack.so.3 => /home/wrk/tmp/gemma-release-0.97/lapack-3.7.1-nyd19c9ccy/lib/liblapack.so.3 (0x00007f8b3eb83000)
+        libstdc++.so.6 => /home/wrk/tmp/gemma-release-0.97/gcc-5.4.0-lib-3x53yv4v14/lib/libstdc++.so.6 (0x00007f8b3e809000)
+        libm.so.6 => /home/wrk/tmp/gemma-release-0.97/glibc-2.25-n6nvxlk2j8/lib/libm.so.6 (0x00007f8b3e4f7000)
+        libgcc_s.so.1 => /home/wrk/tmp/gemma-release-0.97/gcc-5.4.0-lib-3x53yv4v14/lib/libgcc_s.so.1 (0x00007f8b3e2e0000)
+        libpthread.so.0 => /home/wrk/tmp/gemma-release-0.97/glibc-2.25-n6nvxlk2j8/lib/libpthread.so.0 (0x00007f8b3e0c2000)
+        libc.so.6 => /home/wrk/tmp/gemma-release-0.97/glibc-2.25-n6nvxlk2j8/lib/libc.so.6 (0x00007f8b3dd23000)
+        libblas.so.3 => /home/wrk/tmp/gemma-release-0.97/lapack-3.7.1-nyd19c9ccy/lib/libblas.so.3 (0x00007f8b3dacb000)
+        /home/wrk/tmp/gemma-release-0.97/glibc-2.25-n6nvxlk2j8/lib/ld-linux-x86-64.so.2 (0x00007f8b41a5c000)
+#+END_SRC
+
+#+BEGIN_SRC bash
+lario:~/tmp/gemma-release-0.97$ time ./gemma-gn2-0.97-c760aa0-xqhsidq7h5/bin/gemma -g ~/tmp/mouse_hs1940/mouse_hs1940.geno.txt.gz -p ~/tmp/mouse_hs1940/mouse_hs1940.pheno.txt -a ~/tmp/mouse_hs1940/mouse_hs1940.anno.txt -gk
+GEMMA 0.97 (2017/12/27) by Xiang Zhou and team (C) 2012-2017
+Reading Files ...
+## number of total individuals = 1940
+## number of analyzed individuals = 1410
+## number of covariates = 1
+## number of phenotypes = 1
+## number of total SNPs/var        =    12226
+## number of analyzed SNPs         =    10768
+Calculating Relatedness Matrix ...
+================================================== 100%
+
+real    0m21.389s
+user    0m34.980s
+sys     0m4.560s
+#+END_SRC
+
+#+BEGIN_SRC bash
+lario:~/tmp/gemma-release-0.97$ time ./gemma-gn2-0.97-c760aa0-xqhsidq7h5/bin/gemma -g ~/tmp/mouse_hs1940/mouse_hs1940.geno.txt.gz -p ~/tmp/mouse_hs1940/mouse_hs1940.pheno.txt -n 1 -a ~/tmp/mouse_hs1940/mouse_hs1940.anno.txt -k ./output/result.cXX.txt -lmm
+GEMMA 0.97 (2017/12/27) by Xiang Zhou and team (C) 2012-2017
+Reading Files ...
+## number of total individuals = 1940
+## number of analyzed individuals = 1410
+## number of covariates = 1
+## number of phenotypes = 1
+## number of total SNPs/var        =    12226
+## number of analyzed SNPs         =    10768
+Start Eigen-Decomposition...
+pve estimate =0.608801
+se(pve) =0.032774
+================================================== 100%
+
+real    0m13.296s
+user    0m18.332s
+sys     0m5.020s
+#+END_SRC
+
+* GEMMA 0.96
+
+#+BEGIN_SRC bash
+lario:~/tmp/gemma-release-0.96$ ldd gemma.linux
+        linux-vdso.so.1 (0x00007ffd9ee8f000)
+        libz.so.1 => /lib/x86_64-linux-gnu/libz.so.1 (0x00007fc2a94a1000)
+        libgfortran.so.3 => /usr/lib/x86_64-linux-gnu/libgfortran.so.3 (0x00007fc2a9183000)
+        libstdc++.so.6 => /usr/lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007fc2a8e01000)
+        libm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007fc2a8afd000)
+        libgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1 (0x00007fc2a88e6000)
+        libpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x00007fc2a86c9000)
+        libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007fc2a832b000)
+        libquadmath.so.0 => /usr/lib/x86_64-linux-gnu/libquadmath.so.0 (0x00007fc2a80ec000)
+        /lib64/ld-linux-x86-64.so.2 (0x00007fc2a96bb000)
+#+END_SRC
+
+#+BEGIN_SRC bash
+lario:~/tmp/gemma-release-0.96$ time ./gemma.linux -g ~/tmp/mouse_hs1940/mouse_hs1940.geno.txt.gz -p ~/tmp/mouse_hs1940/mouse_hs1940.pheno.txt -a ~/tmp/mouse_hs1940/mouse_hs1940.anno.txt -gk
+Reading Files ...
+## number of total individuals = 1940
+## number of analyzed individuals = 1410
+## number of covariates = 1
+## number of phenotypes = 1
+## number of total SNPs = 12226
+## number of analyzed SNPs = 10768
+Calculating Relatedness Matrix ...
+Reading SNPs  ==================================================100.00%
+
+real    0m16.347s
+user    0m16.204s
+sys     0m0.116s
+#+END_SRC
+
+
+#+BEGIN_SRC bash
+lario:~/tmp/gemma-release-0.96$ time ./gemma.linux -g ~/tmp/mouse_hs1940/mouse_hs1940.geno.txt.gz -p ~/tmp/mouse_hs1940/mouse_hs1940.pheno.txt -n 1 -a ~/tmp/mouse_hs1940/mouse_hs1940.anno.txt -k ./output/result.cXX.txt -lmm
+Reading Files ...
+## number of total individuals = 1940
+## number of analyzed individuals = 1410
+## number of covariates = 1
+## number of phenotypes = 1
+## number of total SNPs = 12226
+## number of analyzed SNPs = 10768
+Start Eigen-Decomposition...
+pve estimate =0.608801
+se(pve) =0.032774
+Reading SNPs  ==================================================100.00%
+
+real    0m20.377s
+user    0m20.240s
+sys     0m0.132s
+#+END_SRC
